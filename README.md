@@ -14,6 +14,43 @@ local install inventory.
 
 ## Install
 
+This is a stdio MCP server distributed from GitHub. Replace `<owner>` with the
+GitHub owner or organization that hosts this repository.
+
+### Codex
+
+```bash
+codex mcp add guildwars1 -- npx -y github:<owner>/guildwars1-mcp
+codex mcp list
+```
+
+With opt-in local inventory:
+
+```bash
+codex mcp add guildwars1 \
+  --env GW1_LOCAL_ROOTS="/path/to/Guild Wars/or VM.vmwarevm" \
+  -- npx -y github:<owner>/guildwars1-mcp
+```
+
+### Claude Code
+
+```bash
+claude mcp add --scope user guildwars1 -- npx -y github:<owner>/guildwars1-mcp
+claude mcp list
+```
+
+With opt-in local inventory:
+
+```bash
+claude mcp add --scope user guildwars1 \
+  -e GW1_LOCAL_ROOTS="/path/to/Guild Wars/or VM.vmwarevm" \
+  -- npx -y github:<owner>/guildwars1-mcp
+```
+
+### Claude Desktop
+
+Merge this into `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -24,6 +61,43 @@ local install inventory.
   }
 }
 ```
+
+With opt-in local inventory:
+
+```json
+{
+  "mcpServers": {
+    "guildwars1": {
+      "command": "npx",
+      "args": ["-y", "github:<owner>/guildwars1-mcp"],
+      "env": {
+        "GW1_LOCAL_ROOTS": "/path/to/Guild Wars/or VM.vmwarevm"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop after changing the file.
+
+### Grok
+
+```bash
+grok mcp add --scope user guildwars1 -- npx -y github:<owner>/guildwars1-mcp
+grok mcp list
+grok mcp doctor
+```
+
+With opt-in local inventory:
+
+```bash
+grok mcp add --scope user guildwars1 \
+  -e GW1_LOCAL_ROOTS="/path/to/Guild Wars/or VM.vmwarevm" \
+  -- npx -y github:<owner>/guildwars1-mcp
+```
+
+Start a new Codex, Claude, or Grok session after adding the server. Existing
+sessions may not pick up newly configured MCP servers.
 
 From a checkout:
 
