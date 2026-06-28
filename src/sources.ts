@@ -71,6 +71,14 @@ export const PUBLIC_SOURCES = [
     authority: "community-discussion"
   },
   {
+    id: "youtube",
+    title: "Guild Wars YouTube channels",
+    kind: "public-youtube-rss",
+    url: "https://www.youtube.com/",
+    apiUrl: "https://www.youtube.com/feeds/videos.xml",
+    authority: "official-and-creator-video"
+  },
+  {
     id: "local-inventory",
     title: "Local Guild Wars install inventory",
     kind: "explicit-local-filesystem",
