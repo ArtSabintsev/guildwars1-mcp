@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-06-28
+
+### Added
+
+- Curated official and creator YouTube channel registry backed by public RSS feeds.
+- YouTube video search tool for Guild Wars 1, Reforged, build, skill, and guide content.
+- Cross-source content search tool spanning Guild Wars Wiki, PvXwiki, GW1 Builds, YouTube, and r/GuildWars.
+- Scheduled source-smoke workflow for continuously checking live public source health.
+
 ## [1.0.0] - 2026-06-28
 
 ### Added

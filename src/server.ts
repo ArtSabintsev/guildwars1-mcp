@@ -1,12 +1,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod/v4";
+import { searchContent } from "./content.js";
 import { searchGw1Builds } from "./gw1builds.js";
 import { inventoryLocal } from "./local.js";
 import { getGameUpdateSections, getRecentChanges, getWikiPage, searchWiki } from "./mediawiki.js";
 import { searchGuildWarsSubreddit } from "./reddit.js";
 import { PUBLIC_SOURCES, SOURCE_SCOPE, WIKI_SOURCES, type WikiSourceId } from "./sources.js";
 import { analyzeTemplateCode } from "./template.js";
+import { getYouTubeVideos, listYouTubeSources, YOUTUBE_SOURCES } from "./youtube.js";
 
 function toolResult(summary: string, structuredContent: Record<string, unknown>): CallToolResult {
   return {
@@ -33,7 +35,7 @@ async function searchAllWikis(source: WikiSourceId | "both", query: string, limi
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "guildwars1-mcp",
-    version: "0.1.0"
+    version: "0.2.0"
   });
 
   server.registerResource(
@@ -69,6 +71,25 @@ export function createServer(): McpServer {
           uri: uri.href,
           mimeType: "application/json",
           text: JSON.stringify({ sources: WIKI_SOURCES }, null, 2)
+        }
+      ]
+    })
+  );
+
+  server.registerResource(
+    "youtube-sources",
+    "gw1://youtube-sources",
+    {
+      title: "Guild Wars 1 YouTube source registry",
+      description: "Curated official and creator YouTube channel RSS feeds used by this MCP server.",
+      mimeType: "application/json"
+    },
+    (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "application/json",
+          text: JSON.stringify({ sources: YOUTUBE_SOURCES }, null, 2)
         }
       ]
     })
@@ -209,6 +230,60 @@ export function createServer(): McpServer {
     async ({ query, limit, sort, includeAuthors, maxCharacters }) => {
       const search = await searchGuildWarsSubreddit({ query, limit, sort, includeAuthors, maxCharacters });
       return toolResult(`Found ${search.results.length} r/GuildWars result(s) for "${query}".`, search);
+    }
+  );
+
+  server.registerTool(
+    "gw1_youtube_sources",
+    {
+      title: "List GW1 YouTube sources",
+      description: "List curated official and creator YouTube channel feeds for Guild Wars 1, Reforged, build, skill, and guide content.",
+      inputSchema: {
+        scope: z.enum(["official", "creators", "all"]).default("all")
+      }
+    },
+    async ({ scope }) => {
+      const sources = listYouTubeSources(scope);
+      return toolResult(`Found ${sources.length} YouTube source(s).`, { scope, sources });
+    }
+  );
+
+  server.registerTool(
+    "gw1_youtube_videos",
+    {
+      title: "Search GW1 YouTube videos",
+      description: "Fetch recent videos from curated public YouTube RSS feeds. Without a query, filters to likely Guild Wars 1/Reforged videos.",
+      inputSchema: {
+        query: z.string().min(1).max(160).optional(),
+        scope: z.enum(["official", "creators", "all"]).default("all"),
+        sourceIds: z.array(z.string().min(1)).optional(),
+        limitPerSource: z.number().int().min(1).max(25).default(5),
+        maxTotal: z.number().int().min(1).max(100).default(25)
+      }
+    },
+    async ({ query, scope, sourceIds, limitPerSource, maxTotal }) => {
+      const search = await getYouTubeVideos({ query, scope, sourceIds, limitPerSource, maxTotal });
+      const failureNote = search.failedSources.length > 0 ? ` ${search.failedSources.length} source(s) failed and are listed in failedSources.` : "";
+      return toolResult(`Fetched ${search.videos.length} YouTube video(s).${failureNote}`, search);
+    }
+  );
+
+  server.registerTool(
+    "gw1_content_search",
+    {
+      title: "Search GW1 content",
+      description: "Search across Guild Wars Wiki, PvXwiki, GW1 Builds, YouTube, and r/GuildWars for current public content.",
+      inputSchema: {
+        query: z.string().min(2).max(160),
+        sources: z.array(z.enum(["wiki", "pvx", "gw1builds", "youtube", "reddit"])).optional(),
+        limitPerSource: z.number().int().min(1).max(20).default(5),
+        includeAuthors: z.boolean().default(false)
+      }
+    },
+    async ({ query, sources, limitPerSource, includeAuthors }) => {
+      const search = await searchContent({ query, sources, limitPerSource, includeAuthors });
+      const failureNote = search.failedSources.length > 0 ? ` ${search.failedSources.length} source(s) failed and are listed in failedSources.` : "";
+      return toolResult(`Found ${search.results.length} content result(s) for "${query}".${failureNote}`, search);
     }
   );
 

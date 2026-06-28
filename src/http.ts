@@ -30,7 +30,7 @@ export async function fetchText(url: string, options: FetchTextOptions = {}): Pr
       signal: controller.signal,
       headers: {
         accept: options.accept ?? "text/html,application/json,application/atom+xml;q=0.9,*/*;q=0.8",
-        "user-agent": "guildwars1-mcp/1.0.0"
+        "user-agent": "guildwars1-mcp/1.1.0"
       }
     });
 

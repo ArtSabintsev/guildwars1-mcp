@@ -1,6 +1,6 @@
 {
   "name": "guildwars1-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Read-only MCP server for Guild Wars 1 public sources and opt-in local inventory.",
   "type": "module",
   "main": "dist/server.js",
@@ -27,6 +27,7 @@
     "build": "npm run clean && tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
     "dev": "tsx src/index.ts",
     "prepare": "npm run build",
+    "smoke:sources": "npm run build && node scripts/source-smoke.mjs",
     "start": "node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -43,6 +44,8 @@
     "mediawiki",
     "pvxwiki",
     "gw1builds",
+    "youtube",
+    "content-discovery",
     "game-data",
     "read-only"
   ],

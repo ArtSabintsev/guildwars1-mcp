@@ -8,6 +8,7 @@ local install inventory.
 - Guild Wars Wiki: `https://wiki.guildwars.com/api.php`
 - PvXwiki: `https://gwpvx.fandom.com/api.php`
 - GW1 Builds: `https://gw1builds.com/api/builds`
+- YouTube public RSS feeds for official and creator channels
 - r/GuildWars public Atom search
 - Local Guild Wars install or VMware Fusion bundle metadata, only when explicit roots are provided
 
@@ -42,12 +43,24 @@ node dist/index.js
 - `gw1_builds_search` - search GW1 Builds public API and/or PvXwiki.
 - `gw1_template_code_analyze` - validate and classify Guild Wars template/build codes.
 - `gw1_subreddit_search` - search r/GuildWars public Atom results.
+- `gw1_youtube_sources` - list curated official and creator YouTube feeds.
+- `gw1_youtube_videos` - fetch recent public YouTube videos from curated feeds.
+- `gw1_content_search` - search across wiki, PvXwiki, GW1 Builds, YouTube, and r/GuildWars.
 - `gw1_local_inventory` - scan explicit local roots for Guild Wars or VMware Fusion metadata.
 
 ## Resources
 
 - `gw1://sources` - public source registry.
 - `gw1://wiki-sources` - MediaWiki source registry.
+- `gw1://youtube-sources` - official and creator YouTube source registry.
+
+## Update Pipeline
+
+Most content is fetched fresh at tool-call time from public APIs and feeds. The
+repo also includes a scheduled `Source Smoke` GitHub Actions workflow that runs
+live checks against the public source surfaces. It does not commit scraped data
+or publish artifacts; it catches dead feeds, API shape changes, and source
+breakage so the curated registry can be updated intentionally.
 
 ## Local Inventory
 
@@ -79,6 +92,7 @@ npm install
 npm run typecheck
 npm test
 npm run build
+npm run smoke:sources
 ```
 
 ## Notes

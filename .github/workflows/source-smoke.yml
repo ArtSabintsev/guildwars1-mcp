@@ -1,0 +1,25 @@
+name: Source Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * 2,5"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Source smoke
+        run: npm run smoke:sources
