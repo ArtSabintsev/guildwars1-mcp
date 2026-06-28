@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Full skill-template decoder: template codes now resolve to primary/secondary professions, attributes with points, and the eight skills by name (bundled Guild Wars Wiki skill index, ~3000 skills, regenerable via `npm run skills:build`).
+- Bundled per-skill metadata (profession, attribute, elite, PvE-only, Kurzick/Luxon allegiance, PvE/PvP-split flag) derived from wiki categories.
+- `gw1_template_encode` tool: construct an importable template code from professions, attributes, and skill names.
+- Build-legality validator enforcing the in-game rules: at most one elite, at most three PvE-only skills, a single allegiance, and the 200 attribute-point budget; warns on profession mismatches and PvE/PvP-split skills.
+- Per-skill numeric stats (energy, cast, recharge, adrenaline, upkeep) and an energy-management flag scraped from skill infoboxes; surfaced per skill in decoded output.
+- Resource/viability analysis in the validator: total energy, sustained-drain ceiling, energy outlook (light / managed / adrenaline-based / needs-engine), longest recharge, and a resurrection-skill check — so builds are assessed for playability, not just legality.
+- Per-skill wiki links in decoded output, so synergy explanations can be grounded in human-written sources.
+
 ## [0.2.0] - 2026-06-28
 
 ### Added
