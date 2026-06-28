@@ -115,7 +115,8 @@ node dist/index.js
 - `gw1_wiki_recent_changes` - read recent public changes from a wiki source.
 - `gw1_game_updates` - parse recent Guild Wars game-update sections from Guild Wars Wiki.
 - `gw1_builds_search` - search GW1 Builds public API and/or PvXwiki.
-- `gw1_template_code_analyze` - validate and classify Guild Wars template/build codes.
+- `gw1_template_code_analyze` - validate, decode, and legality-check Guild Wars template/build codes (professions, attributes, skill names, build rules).
+- `gw1_template_encode` - build an importable template code from professions, attributes, and skill names, with a legality report (one elite, three PvE-only max, single allegiance, 200 attribute-point budget).
 - `gw1_subreddit_search` - search r/GuildWars public Atom results.
 - `gw1_youtube_sources` - list curated official and creator YouTube feeds.
 - `gw1_youtube_videos` - fetch recent public YouTube videos from curated feeds.

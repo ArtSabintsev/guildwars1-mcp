@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod/v4";
+import { encodeSkillTemplate, validateBuild } from "./build.js";
 import { searchContent } from "./content.js";
 import { searchGw1Builds } from "./gw1builds.js";
 import { inventoryLocal } from "./local.js";
@@ -203,14 +204,55 @@ export function createServer(): McpServer {
     "gw1_template_code_analyze",
     {
       title: "Analyze GW1 template code",
-      description: "Validate and classify a Guild Wars template/build code. This is a sanity analyzer, not a full skill decoder.",
+      description:
+        "Validate, classify, and decode a Guild Wars template/build code. Skill templates are fully decoded into primary/secondary professions, attributes with points, and the eight skills resolved to names via the bundled Guild Wars Wiki skill index.",
       inputSchema: {
         input: z.string().min(1).max(500)
       }
     },
     async ({ input }) => {
       const analysis = analyzeTemplateCode(input);
-      return toolResult(`Template code ${analysis.plausible ? "looks plausible" : "needs review"}.`, { analysis });
+      const validation = analysis.decoded ? validateBuild(analysis.decoded) : undefined;
+      const summary = analysis.decoded
+        ? `Decoded ${analysis.decoded.primary.name}/${analysis.decoded.secondary.name} (${validation?.legal ? "legal" : "ILLEGAL"}): ${analysis.decoded.skills.map((skill) => skill.name).join(", ")}.`
+        : `Template code ${analysis.plausible ? "looks plausible" : "needs review"}.`;
+      return toolResult(summary, { analysis, validation });
+    }
+  );
+
+  server.registerTool(
+    "gw1_template_encode",
+    {
+      title: "Build & encode a GW1 skill template",
+      description:
+        "Build a Guild Wars skill template from professions, attributes, and skill names. Returns an importable template code, a legality report (one elite max, three PvE-only max, single allegiance, 200 attribute-point budget, profession checks), per-skill energy/cast/recharge/adrenaline costs, and an energy-sustainability outlook. Use this to construct and sanity-check a build before sharing it.",
+      inputSchema: {
+        primary: z.string().min(1).describe("Primary profession, e.g. 'Dervish'."),
+        secondary: z.string().default("None").describe("Secondary profession, or 'None'."),
+        attributes: z
+          .array(z.object({ attribute: z.string().min(1), points: z.number().int().min(0).max(12) }))
+          .default([])
+          .describe("Base attribute spend (0-12 each), e.g. [{attribute:'Scythe Mastery',points:12}]."),
+        skills: z
+          .array(z.string().min(1))
+          .min(1)
+          .max(8)
+          .describe("Up to 8 skill names, e.g. 'Wounding Strike'. Use exact wiki names.")
+      }
+    },
+    async ({ primary, secondary, attributes, skills }) => {
+      try {
+        const result = encodeSkillTemplate({ primary, secondary, attributes, skills });
+        const verdict = result.validation.legal ? "legal" : "ILLEGAL";
+        return toolResult(
+          `Encoded ${result.decoded.primary.name}/${result.decoded.secondary.name} (${verdict}, energy: ${result.validation.resources.energyOutlook}): ${result.code}`,
+          { ...result }
+        );
+      } catch (error) {
+        return toolResult(`Could not encode build: ${error instanceof Error ? error.message : String(error)}`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
   );
 
