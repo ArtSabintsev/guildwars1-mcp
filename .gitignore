@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+*.log
+*.tgz
+scans/
+local-inventory*.json
+.DS_Store
