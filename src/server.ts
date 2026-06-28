@@ -36,7 +36,7 @@ async function searchAllWikis(source: WikiSourceId | "both", query: string, limi
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "guildwars1-mcp",
-    version: "0.2.0"
+    version: "0.3.0"
   });
 
   server.registerResource(
