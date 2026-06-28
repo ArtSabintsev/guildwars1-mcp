@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+          - 22
+          - 24
+          - 26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke packed package
+        shell: bash
+        run: |
+          tarball=$(npm pack --silent)
+          mkdir -p /tmp/gw1-consumer
+          cd /tmp/gw1-consumer
+          npm init -y
+          npm install "$GITHUB_WORKSPACE/$tarball"
+          test -x node_modules/guildwars1-mcp/dist/index.js
+          set +e
+          timeout 2s ./node_modules/.bin/guildwars1-mcp </dev/null >stdout.log 2>stderr.log
+          status=$?
+          set -e
+          test "$status" -eq 0 -o "$status" -eq 124
+          grep -q "guildwars1-mcp running on stdio" stderr.log
