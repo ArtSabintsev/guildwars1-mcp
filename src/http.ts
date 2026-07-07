@@ -1,6 +1,12 @@
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_CACHE_TTL_MS = 5 * 60_000;
 
+// Descriptive User-Agent following the MediaWiki/Wikimedia User-Agent policy
+// (https://meta.wikimedia.org/wiki/User-Agent_policy): "<client>/<version> (<contact>)".
+// The Guild Wars Wiki rejects bare tool-name User-Agents with HTTP 403, so we
+// identify the client and provide a contact URL for the maintainers.
+const USER_AGENT = "guildwars1-mcp/0.3.0 (+https://github.com/ArtSabintsev/guildwars1-mcp)";
+
 type CacheEntry = {
   expiresAt: number;
   body: string;
@@ -30,7 +36,7 @@ export async function fetchText(url: string, options: FetchTextOptions = {}): Pr
       signal: controller.signal,
       headers: {
         accept: options.accept ?? "text/html,application/json,application/atom+xml;q=0.9,*/*;q=0.8",
-        "user-agent": "guildwars1-mcp/0.2.0"
+        "user-agent": USER_AGENT
       }
     });
 
