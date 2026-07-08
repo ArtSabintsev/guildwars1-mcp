@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-08
+
 ### Added
 
 - `gw1_skill_index_provenance` tool: reports when the bundled skill index was
