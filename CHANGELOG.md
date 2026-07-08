@@ -4,6 +4,52 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `gw1_skill_index_provenance` tool: reports when the bundled skill index was
+  extracted, which Guild Wars Wiki revision it reflects, per-category counts,
+  and a content hash — so LLM consumers can judge how stale template
+  decode/encode data is. The same provenance block is embedded in
+  `src/skills.generated.ts` and surfaced through `gw1_sources`.
+- Scheduled skill-index refresh (`.github/workflows/refresh-skill-index.yml`):
+  weekly re-extraction of the bundled skill index from the wiki, gated on
+  `npm run skills:check` (a content-hash comparison that ignores volatile
+  provenance fields), validated by typecheck + tests before an auto-commit.
+- Automatic semver releases: every substantive push to `main` (including
+  scheduled data refreshes) is now versioned from conventional commits by
+  `.github/workflows/release.yml` + `scripts/prepare-release.mjs`, which update
+  this changelog, tag the release, and publish GitHub Release notes.
+- Shared HTTP layer hardening (`src/http.ts`): one conservative retry on
+  transient failures (network errors and HTTP 408/5xx; rate limits and client
+  timeouts are deliberately not retried), in-flight
+  coalescing of concurrent identical requests, and a bounded response cache.
+
+### Fixed
+
+- Cache freshness is now judged against each caller's TTL instead of the TTL of
+  whichever caller fetched first, so fast-moving reads can never be pinned to
+  stale data by an earlier long-TTL fetch of the same URL.
+- MediaWiki API errors (rate limits, blocked clients, bad params) are surfaced
+  as tool failures instead of silently reading as empty search/recent-changes
+  results.
+- `gw1_wiki_search` with `source: "both"` now returns results from the healthy
+  wiki plus a `failedSources` list when one wiki is down, instead of failing
+  the whole call.
+- The skill-index builder (`scripts/build-skill-index.mjs`) gained request
+  timeouts and retries on every fetch, a guard against MediaWiki error payloads
+  (previously a `TypeError`), and no longer drops legitimate zero values
+  (0-energy, 0-recharge skills) from the generated metadata.
+- The User-Agent version is derived from `package.json` (was hardcoded to
+  1.2.0), so it can no longer drift across releases — relevant because the
+  Guild Wars Wiki 403-blocks non-compliant clients.
+
+### Changed
+
+- Freshness-critical reads (`gw1_wiki_recent_changes`, `gw1_game_updates`) use
+  a 60-second cache TTL instead of the 5-minute default.
+
 ## [1.2.0] - 2026-06-28
 
 ### Added

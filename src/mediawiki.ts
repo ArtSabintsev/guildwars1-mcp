@@ -44,7 +44,37 @@ export type WikiRecentChange = {
   url: string;
 };
 
-type SearchResponse = {
+// TTL for reads whose whole point is freshness (recent changes, game updates).
+const FAST_MOVING_TTL_MS = 60_000;
+
+type ApiError = {
+  error?: {
+    code?: string;
+    info?: string;
+  };
+};
+
+// MediaWiki reports failures (rate limits, blocked clients, bad params) inside
+// a 200 response; without this check they would surface as empty result lists.
+function assertNoApiError(response: ApiError, sourceTitle: string): void {
+  if (response.error) {
+    const code = response.error.code ?? "unknown";
+    const info = response.error.info ?? "no details provided";
+    throw new Error(`${sourceTitle} API error (${code}): ${info}`);
+  }
+}
+
+// Keeps transient in-band API errors (delivered with HTTP 200) out of the
+// shared cache, so a momentary rate limit is not replayed for a full TTL.
+function notApiErrorPayload(body: string): boolean {
+  try {
+    return !(JSON.parse(body) as ApiError).error;
+  } catch {
+    return true;
+  }
+}
+
+type SearchResponse = ApiError & {
   query?: {
     search?: Array<{
       title: string;
@@ -57,7 +87,7 @@ type SearchResponse = {
   };
 };
 
-type PageResponse = {
+type PageResponse = ApiError & {
   query?: {
     pages?: Record<
       string,
@@ -80,7 +110,7 @@ type PageResponse = {
   };
 };
 
-type RecentChangesResponse = {
+type RecentChangesResponse = ApiError & {
   query?: {
     recentchanges?: Array<{
       type?: string;
@@ -105,7 +135,10 @@ export async function searchWiki(sourceId: WikiSourceId, query: string, limit: n
     format: "json",
     origin: "*"
   });
-  const response = await fetchJson<SearchResponse>(`${source.apiUrl}?${params.toString()}`);
+  const response = await fetchJson<SearchResponse>(`${source.apiUrl}?${params.toString()}`, {
+    cacheable: notApiErrorPayload
+  });
+  assertNoApiError(response, source.title);
 
   return (response.query?.search ?? []).map((result) => ({
     sourceId,
@@ -120,7 +153,16 @@ export async function searchWiki(sourceId: WikiSourceId, query: string, limit: n
   }));
 }
 
-export async function getWikiPage(sourceId: WikiSourceId, title: string, maxCharacters: number): Promise<WikiPage> {
+export type GetWikiPageOptions = {
+  cacheTtlMs?: number;
+};
+
+export async function getWikiPage(
+  sourceId: WikiSourceId,
+  title: string,
+  maxCharacters: number,
+  options: GetWikiPageOptions = {}
+): Promise<WikiPage> {
   const source = WIKI_SOURCES[sourceId];
   const params = new URLSearchParams({
     action: "query",
@@ -137,7 +179,11 @@ export async function getWikiPage(sourceId: WikiSourceId, title: string, maxChar
     redirects: "1",
     origin: "*"
   });
-  const response = await fetchJson<PageResponse>(`${source.apiUrl}?${params.toString()}`);
+  const response = await fetchJson<PageResponse>(`${source.apiUrl}?${params.toString()}`, {
+    cacheTtlMs: options.cacheTtlMs,
+    cacheable: notApiErrorPayload
+  });
+  assertNoApiError(response, source.title);
   const page = Object.values(response.query?.pages ?? {})[0];
 
   if (!page || page.missing || page.pageid === undefined || !page.title) {
@@ -176,7 +222,11 @@ export async function getRecentChanges(sourceId: WikiSourceId, limit: number): P
     format: "json",
     origin: "*"
   });
-  const response = await fetchJson<RecentChangesResponse>(`${source.apiUrl}?${params.toString()}`);
+  const response = await fetchJson<RecentChangesResponse>(`${source.apiUrl}?${params.toString()}`, {
+    cacheTtlMs: FAST_MOVING_TTL_MS,
+    cacheable: notApiErrorPayload
+  });
+  assertNoApiError(response, source.title);
 
   return (response.query?.recentchanges ?? []).map((change) => ({
     sourceId,
@@ -200,7 +250,7 @@ export type GameUpdateSection = {
 };
 
 export async function getGameUpdateSections(limit: number, maxCharactersPerSection = 3000): Promise<GameUpdateSection[]> {
-  const page = await getWikiPage("gww", "Game updates", 40_000);
+  const page = await getWikiPage("gww", "Game updates", 40_000, { cacheTtlMs: FAST_MOVING_TTL_MS });
   const sections: GameUpdateSection[] = [];
   const pattern = /^(?:==\s*)?(Update [A-Z][^=\n]+?)(?:\s*==)?\s*$/gm;
   const matches = [...page.extract.matchAll(pattern)];

@@ -4,9 +4,11 @@ import * as z from "zod/v4";
 import { encodeSkillTemplate, validateBuild } from "./build.js";
 import { searchContent } from "./content.js";
 import { searchGw1Builds } from "./gw1builds.js";
+import { PACKAGE_VERSION } from "./http.js";
 import { inventoryLocal } from "./local.js";
-import { getGameUpdateSections, getRecentChanges, getWikiPage, searchWiki } from "./mediawiki.js";
+import { getGameUpdateSections, getRecentChanges, getWikiPage, searchWiki, type WikiSearchResult } from "./mediawiki.js";
 import { searchGuildWarsSubreddit } from "./reddit.js";
+import { SKILL_INDEX_PROVENANCE } from "./skills.generated.js";
 import { PUBLIC_SOURCES, SOURCE_SCOPE, WIKI_SOURCES, type WikiSourceId } from "./sources.js";
 import { analyzeTemplateCode } from "./template.js";
 import { getYouTubeVideos, listYouTubeSources, YOUTUBE_SOURCES } from "./youtube.js";
@@ -29,14 +31,37 @@ const wikiSourceOrBothSchema = z.enum(["gww", "pvx", "both"]);
 async function searchAllWikis(source: WikiSourceId | "both", query: string, limit: number) {
   const perSourceLimit = source === "both" ? Math.ceil(limit / 2) : limit;
   const sourceIds: WikiSourceId[] = source === "both" ? ["gww", "pvx"] : [source];
-  const results = await Promise.all(sourceIds.map((sourceId) => searchWiki(sourceId, query, perSourceLimit)));
-  return results.flat().slice(0, limit);
+  const settled = await Promise.allSettled(sourceIds.map((sourceId) => searchWiki(sourceId, query, perSourceLimit)));
+
+  const results: WikiSearchResult[] = [];
+  const failedSources: Array<{ sourceId: WikiSourceId; error: string }> = [];
+  settled.forEach((outcome, index) => {
+    if (outcome.status === "fulfilled") {
+      results.push(...outcome.value);
+    } else {
+      failedSources.push({
+        sourceId: sourceIds[index],
+        error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)
+      });
+    }
+  });
+
+  // Only surrender when every requested wiki failed; one healthy source is still an answer.
+  if (failedSources.length === sourceIds.length) {
+    // For a single-source request, surface the original error unwrapped.
+    const failure = settled[0];
+    if (sourceIds.length === 1 && failure.status === "rejected") {
+      throw failure.reason;
+    }
+    throw new Error(`All wiki sources failed: ${failedSources.map((f) => `${f.sourceId}: ${f.error}`).join("; ")}`);
+  }
+  return { results: results.slice(0, limit), failedSources };
 }
 
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "guildwars1-mcp",
-    version: "0.3.0"
+    version: PACKAGE_VERSION
   });
 
   server.registerResource(
@@ -105,8 +130,23 @@ export function createServer(): McpServer {
     async () =>
       toolResult(`Found ${PUBLIC_SOURCES.length} configured source surfaces.`, {
         scope: SOURCE_SCOPE,
-        sources: PUBLIC_SOURCES
+        sources: PUBLIC_SOURCES,
+        skillIndex: SKILL_INDEX_PROVENANCE
       })
+  );
+
+  server.registerTool(
+    "gw1_skill_index_provenance",
+    {
+      title: "Skill index provenance",
+      description:
+        "Report where the bundled skill index came from (Guild Wars Wiki, not game files), when it was extracted, which wiki revision it reflects, and its content hash — use this to judge how stale template decode/encode data is."
+    },
+    async () =>
+      toolResult(
+        `Skill index of ${SKILL_INDEX_PROVENANCE.counts.total} skills extracted ${SKILL_INDEX_PROVENANCE.extractedAt} from wiki revision ${SKILL_INDEX_PROVENANCE.wikiRevisionId}.`,
+        { provenance: SKILL_INDEX_PROVENANCE }
+      )
   );
 
   server.registerTool(
@@ -121,8 +161,14 @@ export function createServer(): McpServer {
       }
     },
     async ({ query, source, limit }) => {
-      const results = await searchAllWikis(source, query, limit);
-      return toolResult(`Found ${results.length} wiki matches for "${query}".`, { query, source, results });
+      const { results, failedSources } = await searchAllWikis(source, query, limit);
+      const failureNote = failedSources.length > 0 ? ` (${failedSources.map((f) => f.sourceId).join(", ")} unavailable)` : "";
+      return toolResult(`Found ${results.length} wiki matches for "${query}"${failureNote}.`, {
+        query,
+        source,
+        results,
+        failedSources
+      });
     }
   );
 

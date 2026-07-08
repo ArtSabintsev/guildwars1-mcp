@@ -8,3 +8,4 @@ coverage/
 scans/
 local-inventory*.json
 .DS_Store
+.release-notes.md

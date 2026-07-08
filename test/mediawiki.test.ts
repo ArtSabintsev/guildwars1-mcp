@@ -94,4 +94,22 @@ describe("MediaWiki client", () => {
     expect(updates.map((update) => update.heading)).toEqual(["Update June 25, 2026", "Update June 24, 2026"]);
     expect(updates[0]?.text).toBe("Fixed pets.");
   });
+
+  it("surfaces MediaWiki API errors instead of returning empty results", async () => {
+    mockedFetchJson.mockResolvedValue({
+      error: { code: "ratelimited", info: "You've exceeded your rate limit." }
+    });
+
+    await expect(searchWiki("gww", "skill", 5)).rejects.toThrow("ratelimited");
+    await expect(getRecentChanges("gww", 5)).rejects.toThrow("ratelimited");
+    await expect(getWikiPage("gww", "Skill", 1000)).rejects.toThrow("ratelimited");
+  });
+
+  it("uses a short cache TTL for recent changes", async () => {
+    mockedFetchJson.mockResolvedValue({ query: { recentchanges: [] } });
+
+    await getRecentChanges("gww", 5);
+
+    expect(mockedFetchJson).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ cacheTtlMs: 60_000 }));
+  });
 });

@@ -5,6 +5,21 @@
 export const SKILL_INDEX_SOURCE = "https://wiki.guildwars.com/wiki/Guild_Wars_Wiki:Game_integration/Skills";
 export const SKILL_INDEX_COUNT = 3004;
 
+/** Where and when this index was extracted; surfaced via gw1_skill_index_provenance. */
+export const SKILL_INDEX_PROVENANCE = {
+  "source": "https://wiki.guildwars.com/wiki/Guild_Wars_Wiki:Game_integration/Skills",
+  "extractedAt": "2026-07-07T23:41:30.373Z",
+  "wikiRevisionId": 2729408,
+  "wikiRevisionTimestamp": "2026-05-31T21:22:38Z",
+  "contentSha256": "a6348d7e7e039d40088053ccadfdea0535971756f0fa1c9bb94d8ba7a72d6bb2",
+  "counts": {
+    "total": 3004,
+    "elite": 375,
+    "pveOnly": 125,
+    "withEnergy": 1677
+  }
+} as const;
+
 /** Skill id -> canonical Guild Wars Wiki skill name. */
 export const SKILL_NAMES: Record<string, string> = {
   "1": "Healing Signet",
@@ -3114,7 +3129,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   "84": {p:4,a:5,en:15,ac:1,re:5},
   "85": {p:4,a:5,en:10,ac:1,re:5},
   "86": {p:4,e:1,hl:1,en:10,ac:0.25,re:10},
-  "87": {p:4,a:5,en:5,ac:1,re:5},
+  "87": {p:4,a:5,hl:1,en:5,ac:1,re:5},
   "88": {p:4,a:5,sac:1,en:15,ac:0.75,re:30},
   "89": {p:4,a:5,en:10,ac:1,re:5},
   "90": {p:4,a:5,hl:1,sac:1,en:10,ac:2,re:60},
@@ -3712,7 +3727,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   "850": {p:1,a:19,ad:6},
   "851": {p:1,a:20,ad:8},
   "852": {p:2,a:25,en:10,re:5},
-  "853": {p:2,a:25,e:1,en:5,ac:1,re:12},
+  "853": {p:2,a:25,e:1,en:5,ac:1,re:8},
   "854": {p:2,a:24,en:5,ac:32,re:15},
   "855": {},
   "856": {em:1,re:45},
@@ -3721,7 +3736,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   "859": {p:5,a:1,en:15,ac:1,re:5},
   "860": {p:5,a:2,ac:0.25,re:15},
   "861": {p:4,a:7,en:15,ac:2,re:15},
-  "862": {p:4,a:4,e:1,sac:1,en:1,ac:1,re:10},
+  "862": {p:4,a:4,e:1,hl:1,sac:1,en:1,ac:1,re:10},
   "863": {p:4,a:7,e:1,en:25,ac:2},
   "864": {p:4,a:4,en:10,ac:1,re:10},
   "865": {p:6,a:8,x:1,en:25,ac:2,re:4},

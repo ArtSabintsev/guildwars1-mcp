@@ -28,6 +28,7 @@
     "dev": "tsx src/index.ts",
     "prepare": "npm run build",
     "skills:build": "node scripts/build-skill-index.mjs",
+    "skills:check": "node scripts/build-skill-index.mjs --check",
     "smoke:sources": "npm run build && node scripts/source-smoke.mjs",
     "start": "node dist/index.js",
     "test": "vitest run",
