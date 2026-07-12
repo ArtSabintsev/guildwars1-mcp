@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.5] - 2026-07-12
+
+### Fixed
+
+- serialize refresh with release and harden the rebase-push step (e3bb197)
+
 ## [1.3.4] - 2026-07-12
 
 ### Changed
