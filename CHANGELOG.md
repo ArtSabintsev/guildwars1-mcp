@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-07-12
+
+### Fixed
+
+- use policy-compliant User-Agent in skill-index builder (1019c5b)
+
 ## [1.3.0] - 2026-07-08
 
 ### Added
