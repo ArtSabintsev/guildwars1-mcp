@@ -82,4 +82,8 @@ jobs:
           git add src/skills.generated.ts
           rev=$(grep -o '"wikiRevisionId": [0-9]*' src/skills.generated.ts | grep -o '[0-9]*$' || echo unknown)
           git commit -m "chore: refresh skill index from Guild Wars Wiki (rev ${rev})"
+          # main may have moved during extraction (e.g. the Release workflow
+          # pushing a version bump); rebase our single generated-file commit
+          # onto the current tip instead of failing the push.
+          git pull --rebase origin main
           git push
