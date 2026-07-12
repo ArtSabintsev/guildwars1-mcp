@@ -1,6 +1,5 @@
 // Shared HTTP layer: cached, coalesced, retrying fetch with a policy-compliant
-// User-Agent. NOTE: mirrored in everquest-legends-mcp/src/http.ts (same core;
-// that repo adds postJson/primeTextCache and omits fetchJson) — port fixes to both.
+// User-Agent.
 import { readFileSync } from "node:fs";
 
 const DEFAULT_TIMEOUT_MS = 15_000;

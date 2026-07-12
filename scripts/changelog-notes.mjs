@@ -1,6 +1,5 @@
 // Prints the CHANGELOG.md section for a given version (release-notes recovery
-// path for .github/workflows/release.yml). NOTE: mirrored in
-// everquest-legends-mcp — keep in sync.
+// path for .github/workflows/release.yml).
 //
 // Usage: node scripts/changelog-notes.mjs 0.4.0
 import { readFileSync } from "node:fs";

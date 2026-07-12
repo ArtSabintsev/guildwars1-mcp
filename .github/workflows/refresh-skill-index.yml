@@ -9,7 +9,7 @@ name: Refresh skill index
 
 on:
   schedule:
-    # Weekly, Mondays 07:00 UTC — matches the everquest-legends-mcp cadence.
+    # Weekly, Mondays 07:00 UTC.
     - cron: "0 7 * * 1"
   workflow_dispatch:
     inputs:
