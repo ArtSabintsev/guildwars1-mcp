@@ -22,7 +22,16 @@ const RANGES = ["1-500", "501-1000", "1001-1500", "1501-2000", "2001-2500", "250
 const API = "https://wiki.guildwars.com/api.php";
 const RAW = "https://wiki.guildwars.com/index.php";
 const SOURCE_PAGE = "https://wiki.guildwars.com/wiki/Guild_Wars_Wiki:Game_integration/Skills";
-const UA = { headers: { "user-agent": "guildwars1-mcp skill-index builder (arthur@sabintsev.com)" } };
+// Same "<client>/<version> (<contact>)" User-Agent as src/http.ts — the wiki
+// 403s anything that doesn't match the MediaWiki User-Agent policy shape.
+const PACKAGE_VERSION = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8")
+).version;
+const UA = {
+  headers: {
+    "user-agent": `guildwars1-mcp/${PACKAGE_VERSION} (+https://github.com/ArtSabintsev/guildwars1-mcp)`,
+  },
+};
 
 const LINE_PATTERN = /Game link:Skill (\d+)\|redirect=no\}\}[^\]]*\][^[]*\[\[([^\]]+?)\]\]/g;
 
