@@ -8,10 +8,10 @@ export const SKILL_INDEX_COUNT = 3004;
 /** Where and when this index was extracted; surfaced via gw1_skill_index_provenance. */
 export const SKILL_INDEX_PROVENANCE = {
   "source": "https://wiki.guildwars.com/wiki/Guild_Wars_Wiki:Game_integration/Skills",
-  "extractedAt": "2026-07-07T23:41:30.373Z",
+  "extractedAt": "2026-07-12T00:38:14.250Z",
   "wikiRevisionId": 2729408,
   "wikiRevisionTimestamp": "2026-05-31T21:22:38Z",
-  "contentSha256": "a6348d7e7e039d40088053ccadfdea0535971756f0fa1c9bb94d8ba7a72d6bb2",
+  "contentSha256": "7359be5fe03fb8fff4e83f6de03b6801cd40482f2b6355feaf53c33a4541e888",
   "counts": {
     "total": 3004,
     "elite": 375,
@@ -4400,7 +4400,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   "1547": {p:9,a:37,ac:1,ad:2},
   "1548": {p:9,a:37,e:1,ad:6},
   "1549": {p:9,a:37,x:1,en:10,ac:0.5,re:10},
-  "1550": {p:9,a:37,ac:1,ad:4},
+  "1550": {p:9,a:37,ac:1,re:1,ad:4},
   "1551": {p:9,a:37,en:5,re:6},
   "1552": {p:9,a:37,ad:3},
   "1553": {p:9,a:40,e:1,en:5,ac:1,re:10},
@@ -5748,7 +5748,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   "3084": {ac:1,re:45},
   "3085": {ac:1,re:45},
   "3086": {re:15},
-  "3087": {en:5,ac:1,re:5},
+  "3087": {en:5,ac:1,re:4},
   "3088": {en:5,ac:0.75,re:5},
   "3089": {en:1,ac:0.75},
   "3090": {en:1,ac:0.25,re:7},
