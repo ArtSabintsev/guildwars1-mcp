@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-07-12
+
+### Changed
+
+- remove cross-repo mirror references from comments (d43633c)
+
 ## [1.3.3] - 2026-07-12
 
 ### Changed
