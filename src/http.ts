@@ -22,6 +22,8 @@ export const PACKAGE_VERSION = packageJson.version;
 // (https://meta.wikimedia.org/wiki/User-Agent_policy): "<client>/<version> (<contact>)".
 // The Guild Wars Wiki rejects bare tool-name User-Agents with HTTP 403, so we
 // identify the client and provide a contact URL for the maintainers.
+// Duplicated in scripts/build-skill-index.mjs, which must run pre-build and
+// so can't import this module — keep the two in sync.
 export const USER_AGENT = `guildwars1-mcp/${PACKAGE_VERSION} (+https://github.com/ArtSabintsev/guildwars1-mcp)`;
 
 type CacheEntry = {

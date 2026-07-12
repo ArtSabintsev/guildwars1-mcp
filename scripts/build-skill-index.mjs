@@ -164,17 +164,27 @@ function deriveMeta(cats, wikitext) {
   return out;
 }
 
+// SKILL_META comes from per-skill pages that can change independently of the
+// range pages, so track their newest revision too — otherwise provenance
+// claims an unchanged wiki revision for changed metadata.
+let metaMaxRevId = 0;
+let metaMaxRevTimestamp = "";
 let done = 0;
 for (let i = 0; i < names.length; i += 40) {
   const batch = names.slice(i, i + 40);
-  const url = `${API}?action=query&prop=categories|revisions&cllimit=500&rvprop=content&rvslots=main&format=json&titles=${encodeURIComponent(batch.join("|"))}`;
+  const url = `${API}?action=query&prop=categories|revisions&cllimit=500&rvprop=ids|timestamp|content&rvslots=main&format=json&titles=${encodeURIComponent(batch.join("|"))}`;
   const data = await fetchJson(url); // fetchJson already retries transient failures
   const norm = {}; (data.query.normalized || []).forEach(n => norm[n.from] = n.to);
   const byTitle = {};
   for (const p of Object.values(data.query.pages)) {
+    const rev = p.revisions?.[0];
+    if (rev && rev.revid > metaMaxRevId) {
+      metaMaxRevId = rev.revid;
+      metaMaxRevTimestamp = rev.timestamp;
+    }
     byTitle[p.title] = {
       cats: (p.categories || []).map(c => c.title),
-      text: p.revisions?.[0]?.slots?.main?.["*"] || ""
+      text: rev?.slots?.main?.["*"] || ""
     };
   }
   for (const requested of batch) {
@@ -227,13 +237,14 @@ if (CHECK_MODE) {
   process.exit(10);
 }
 
-// Highest revision across the machine-readable range pages = the wiki state this index reflects.
+// Highest revision across every page this index reflects: the machine-readable
+// range pages (names) and the per-skill pages (metadata, tracked above).
 const rangeTitles = RANGES.map((range) => `Guild_Wars_Wiki:Game_integration/Skills/${range}`).join("|");
 const revisionData = await fetchJson(
   `${API}?action=query&prop=revisions&rvprop=ids|timestamp&format=json&titles=${encodeURIComponent(rangeTitles)}`
 );
-let wikiRevisionId = 0;
-let wikiRevisionTimestamp = "";
+let wikiRevisionId = metaMaxRevId;
+let wikiRevisionTimestamp = metaMaxRevTimestamp;
 for (const page of Object.values(revisionData.query.pages)) {
   const rev = page.revisions?.[0];
   if (rev && rev.revid > wikiRevisionId) {
