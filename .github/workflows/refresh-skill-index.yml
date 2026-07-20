@@ -6,11 +6,22 @@ name: Refresh skill index
 # list plus per-skill categories/infoboxes (never game files), so it drifts
 # when the wiki is edited. This workflow re-extracts on a schedule, validates
 # the result, and commits it only when the underlying data actually changed.
+#
+# The wiki's AWS load balancer intermittently 403s hosted-runner egress IPs in
+# block windows lasting minutes to hours (observed 2026-07-20: all endpoints
+# 403 at once from awselb/2.0, then 200 minutes later; residential IPs
+# unaffected). Mitigation, keeping the refresh fully automated:
+#   - the extraction steps live in .github/actions/refresh-skill-index and run
+#     twice — a failed first attempt retries once on a fresh runner (fresh IP);
+#   - if both attempts land in a block window (script exit 99), the run skips
+#     with a warning instead of failing, and the daily cron self-heals: any
+#     open window across the week gets the refresh through.
 
 on:
   schedule:
-    # Weekly, Mondays 07:00 UTC.
-    - cron: "0 7 * * 1"
+    # Daily 07:00 UTC — frequent draws against the wiki's intermittent
+    # CI-IP block windows; an unchanged wiki makes each run a no-op.
+    - cron: "0 7 * * *"
   workflow_dispatch:
     inputs:
       commit:
@@ -30,69 +41,35 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    # A first-attempt failure must not fail the run: release.yml only fires on
+    # conclusion == success, and the retry below may still complete the
+    # refresh. If the retry also fails, the run fails there.
+    continue-on-error: true
+    outputs:
+      ok: ${{ steps.attempt.outputs.ok }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - name: Refresh
+        id: attempt
+        uses: ./.github/actions/refresh-skill-index
         with:
-          node-version: 22
-          cache: npm
+          commit: ${{ github.event.inputs.commit || 'true' }}
 
-      - name: Install
-        run: npm ci
+  # Fresh runner = fresh egress IP; only runs when the first attempt failed.
+  refresh-retry:
+    needs: refresh
+    if: needs.refresh.outputs.ok != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
 
-      # skills:check compares a content hash of the extracted data (ignoring
-      # extraction timestamp and revision metadata), so an unchanged wiki never
-      # produces a no-op commit. Exit 10 means "data changed"; any other
-      # nonzero exit is a crashed extraction and fails the job instead of
-      # being mistaken for a change.
-      - name: Detect upstream changes
-        id: diff
-        run: |
-          set +e
-          npm run --silent skills:check
-          code=$?
-          set -e
-          if [ "$code" -eq 0 ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          elif [ "$code" -eq 10 ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skills:check failed with exit $code" >&2
-            exit "$code"
-          fi
-
-      - name: Rebuild skill index
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          npm run skills:build
-          git --no-pager diff --stat -- src/skills.generated.ts
-
-      # Validate the freshly-generated index before it can be committed, so a
-      # bad extraction never lands on main.
-      - name: Typecheck
-        if: steps.diff.outputs.changed == 'true'
-        run: npm run typecheck
-
-      - name: Test
-        if: steps.diff.outputs.changed == 'true'
-        run: npm test
-
-      - name: Commit refreshed index
-        if: steps.diff.outputs.changed == 'true' && github.event.inputs.commit != 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/skills.generated.ts
-          rev=$(grep -o '"wikiRevisionId": [0-9]*' src/skills.generated.ts | grep -o '[0-9]*$' || echo unknown)
-          sha=$(grep -o '"contentSha256": "[0-9a-f]*"' src/skills.generated.ts | grep -o '[0-9a-f]\{64\}' | cut -c1-12 || echo unknown)
-          git commit -m "chore: refresh skill index from Guild Wars Wiki (rev ${rev}, sha ${sha})"
-          # The branch may have moved during extraction (e.g. a human push;
-          # workflow pushes are serialized by the concurrency group); rebase
-          # our single generated-file commit onto the current tip and
-          # re-validate the combined tree before pushing it.
-          git pull --rebase origin "$GITHUB_REF_NAME"
-          npm run typecheck && npm test
-          git push
+      - name: Refresh (retry on fresh runner)
+        uses: ./.github/actions/refresh-skill-index
+        with:
+          commit: ${{ github.event.inputs.commit || 'true' }}
+          # Second blocked attempt = we're in a block window; skip green and
+          # let the next daily run retry rather than paging on a red X.
+          blocked-policy: skip

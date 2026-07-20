@@ -74,6 +74,14 @@ async function fetchWithRetry(url) {
       clearTimeout(timeout);
     }
   }
+  // The wiki's AWS load balancer intermittently 403s hosted-CI egress IPs in
+  // block windows lasting minutes to hours (all endpoints at once, so no
+  // endpoint choice avoids it). Exit 99 lets callers tell "upstream is
+  // blocking this network right now" apart from a crashed extraction.
+  if (/HTTP 403 /.test(lastError?.message ?? "")) {
+    console.error("wiki returned 403 on every attempt — upstream is blocking this network; exiting 99");
+    process.exit(99);
+  }
   throw lastError;
 }
 

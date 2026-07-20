@@ -1,0 +1,110 @@
+# Steps shared by both attempts of the "Refresh skill index" workflow
+# (.github/workflows/refresh-skill-index.yml). The wiki intermittently 403s a
+# subset of hosted-runner egress IPs, so the workflow runs these steps again on
+# a second, fresh runner (fresh IP) when the first attempt fails.
+name: Refresh skill index
+description: Extract the wiki skill index, validate it, and commit it if the data changed.
+
+inputs:
+  commit:
+    description: "Commit refreshed data if it changed"
+    required: false
+    default: "true"
+  blocked-policy:
+    description: >-
+      What to do when the wiki is 403-blocking this runner's IP (skills:check
+      exit 99): "fail" fails the step so the caller can retry on a fresh
+      runner; "skip" succeeds with a warning, deferring to the next scheduled
+      run. Data is near-frozen, so a skipped refresh costs nothing.
+    required: false
+    default: "fail"
+
+outputs:
+  ok:
+    description: "true when the refresh completed; unset when any step failed"
+    value: ${{ steps.done.outputs.ok }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: Install
+      shell: bash
+      run: npm ci
+
+    # skills:check compares a content hash of the extracted data (ignoring
+    # extraction timestamp and revision metadata), so an unchanged wiki never
+    # produces a no-op commit. Exit 10 means "data changed"; any other
+    # nonzero exit is a crashed extraction and fails the job instead of
+    # being mistaken for a change.
+    - name: Detect upstream changes
+      id: diff
+      shell: bash
+      run: |
+        set +e
+        npm run --silent skills:check
+        code=$?
+        set -e
+        if [ "$code" -eq 0 ]; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        elif [ "$code" -eq 10 ]; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        elif [ "$code" -eq 99 ]; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.blocked-policy }}" = "skip" ]; then
+            echo "::warning::wiki.guildwars.com is 403-blocking hosted-runner IPs; skipping this refresh (next scheduled run retries)"
+          else
+            echo "::warning::wiki.guildwars.com is 403-blocking this runner's IP; failing so the caller can retry on a fresh runner"
+            exit 99
+          fi
+        else
+          echo "skills:check failed with exit $code" >&2
+          exit "$code"
+        fi
+
+    - name: Rebuild skill index
+      if: steps.diff.outputs.changed == 'true'
+      shell: bash
+      run: |
+        npm run skills:build
+        git --no-pager diff --stat -- src/skills.generated.ts
+
+    # Validate the freshly-generated index before it can be committed, so a
+    # bad extraction never lands on main.
+    - name: Typecheck
+      if: steps.diff.outputs.changed == 'true'
+      shell: bash
+      run: npm run typecheck
+
+    - name: Test
+      if: steps.diff.outputs.changed == 'true'
+      shell: bash
+      run: npm test
+
+    - name: Commit refreshed index
+      if: steps.diff.outputs.changed == 'true' && inputs.commit != 'false'
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add src/skills.generated.ts
+        rev=$(grep -o '"wikiRevisionId": [0-9]*' src/skills.generated.ts | grep -o '[0-9]*$' || echo unknown)
+        sha=$(grep -o '"contentSha256": "[0-9a-f]*"' src/skills.generated.ts | grep -o '[0-9a-f]\{64\}' | cut -c1-12 || echo unknown)
+        git commit -m "chore: refresh skill index from Guild Wars Wiki (rev ${rev}, sha ${sha})"
+        # The branch may have moved during extraction (e.g. a human push;
+        # workflow pushes are serialized by the concurrency group); rebase
+        # our single generated-file commit onto the current tip and
+        # re-validate the combined tree before pushing it.
+        git pull --rebase origin "$GITHUB_REF_NAME"
+        npm run typecheck && npm test
+        git push
+
+    - name: Mark attempt successful
+      id: done
+      shell: bash
+      run: echo "ok=true" >> "$GITHUB_OUTPUT"
