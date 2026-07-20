@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.6] - 2026-07-20
+
+### Changed
+
+- survive wiki 403 block windows — fresh-runner retry, green skip, daily cron (46eb24b)
+
 ## [1.3.5] - 2026-07-12
 
 ### Fixed
