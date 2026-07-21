@@ -1,5 +1,16 @@
 name: Source Smoke
 
+# Live smoke checks against every upstream source the server reads. The Guild
+# Wars Wiki's AWS load balancer intermittently 403s hosted-runner egress IPs in
+# block windows lasting minutes to hours (observed 2026-07-20: all endpoints
+# 403 at once from awselb/2.0, residential IPs unaffected). A block window is
+# external and self-heals, so it must not red the run:
+#   - scripts/source-smoke.mjs exits 99 when every failing check is a wiki 403;
+#   - a failed first attempt retries once on a fresh runner (fresh IP);
+#   - if both attempts land in a block window, the run skips green with a
+#     warning and the next schedule retries. A genuine source regression exits
+#     1 on both attempts and reds the run as before.
+
 on:
   workflow_dispatch:
   schedule:
@@ -8,18 +19,31 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    # A first-attempt failure must not fail the run: the retry below may still
+    # pass (fresh IP) or legitimately skip a block window.
+    continue-on-error: true
+    outputs:
+      ok: ${{ steps.attempt.outputs.ok }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install
-        run: npm ci
-
       - name: Source smoke
-        run: npm run smoke:sources
+        id: attempt
+        uses: ./.github/actions/source-smoke
+
+  # Fresh runner = fresh egress IP; only runs when the first attempt failed.
+  smoke-retry:
+    needs: smoke
+    if: needs.smoke.outputs.ok != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Source smoke (retry on fresh runner)
+        uses: ./.github/actions/source-smoke
+        with:
+          # Second blocked attempt = we're in a block window; skip green and
+          # let the next scheduled run retry rather than paging on a red X.
+          blocked-policy: skip

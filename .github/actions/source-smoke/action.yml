@@ -1,0 +1,67 @@
+# Steps shared by both attempts of the "Source Smoke" workflow
+# (.github/workflows/source-smoke.yml). The Guild Wars Wiki intermittently 403s
+# a subset of hosted-runner egress IPs, so the workflow runs these steps again
+# on a second, fresh runner (fresh IP) when the first attempt is blocked.
+name: Source smoke
+description: Run the live source-integration smoke checks, tolerating wiki 403 block windows.
+
+inputs:
+  blocked-policy:
+    description: >-
+      What to do when every failing check is a wiki 403 block window
+      (source-smoke exit 99): "fail" fails the step so the caller can retry on a
+      fresh runner; "skip" succeeds with a warning, deferring to the next
+      scheduled run. A block window is external and self-heals, so a skipped
+      smoke run costs nothing.
+    required: false
+    default: "fail"
+
+outputs:
+  ok:
+    description: "true when the smoke run passed or was skipped; unset when any step failed"
+    value: ${{ steps.done.outputs.ok }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        cache: npm
+
+    - name: Install
+      shell: bash
+      run: npm ci
+
+    # source-smoke exits 0 on success, 99 when every failing check is a wiki
+    # 403 block window (transient, external), and 1 on any genuine source
+    # regression. Only exit 99 is subject to blocked-policy; a real failure
+    # always reds the run.
+    - name: Source smoke
+      id: smoke
+      shell: bash
+      run: |
+        set +e
+        npm run smoke:sources
+        code=$?
+        set -e
+        if [ "$code" -eq 0 ]; then
+          exit 0
+        elif [ "$code" -eq 99 ]; then
+          if [ "${{ inputs.blocked-policy }}" = "skip" ]; then
+            echo "::warning::wiki.guildwars.com is 403-blocking hosted-runner IPs; skipping this smoke run (next scheduled run retries)"
+            exit 0
+          else
+            echo "::warning::wiki.guildwars.com is 403-blocking this runner's IP; failing so the caller can retry on a fresh runner"
+            exit 99
+          fi
+        else
+          echo "source smoke failed with exit $code" >&2
+          exit "$code"
+        fi
+
+    - name: Mark attempt successful
+      id: done
+      shell: bash
+      run: echo "ok=true" >> "$GITHUB_OUTPUT"
