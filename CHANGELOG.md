@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-07-21
+
+### Changed
+
+- refresh skill index from Guild Wars Wiki (rev 2735066, sha 03f44a441117) (2f49eeb)
+
 ## [1.3.6] - 2026-07-20
 
 ### Changed
