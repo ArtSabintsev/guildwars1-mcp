@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-07-21
+
+### Changed
+
+- survive wiki 403 block windows in Source Smoke (bc7ea61)
+
 ## [1.3.7] - 2026-07-21
 
 ### Changed
