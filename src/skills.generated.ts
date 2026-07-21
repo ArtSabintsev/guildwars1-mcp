@@ -8,10 +8,10 @@ export const SKILL_INDEX_COUNT = 3004;
 /** Where and when this index was extracted; surfaced via gw1_skill_index_provenance. */
 export const SKILL_INDEX_PROVENANCE = {
   "source": "https://wiki.guildwars.com/wiki/Guild_Wars_Wiki:Game_integration/Skills",
-  "extractedAt": "2026-07-12T00:38:14.250Z",
-  "wikiRevisionId": 2729408,
-  "wikiRevisionTimestamp": "2026-05-31T21:22:38Z",
-  "contentSha256": "7359be5fe03fb8fff4e83f6de03b6801cd40482f2b6355feaf53c33a4541e888",
+  "extractedAt": "2026-07-21T09:25:40.758Z",
+  "wikiRevisionId": 2735066,
+  "wikiRevisionTimestamp": "2026-07-21T09:13:30Z",
+  "contentSha256": "03f44a4411175cf5d6856170ef755520512b9417220f07235a579d5d0a0b9088",
   "counts": {
     "total": 3004,
     "elite": 375,
@@ -3201,7 +3201,7 @@ export const SKILL_META: Record<string, SkillMeta> = {
   "156": {p:4,a:4,hl:1,en:15,ac:0.75,re:2},
   "157": {p:4,a:4,sac:1,en:5,ac:1,re:2},
   "158": {p:4,a:4,sac:1,en:1,ac:0.75,re:3},
-  "159": {p:4,a:7,en:5,re:5},
+  "159": {p:4,a:7,en:5,ac:0.5,re:5},
   "160": {p:6,a:8,en:10,ac:0.75,re:5},
   "161": {p:6,a:8,en:25,ac:3},
   "162": {p:6,a:8,en:10,ac:1,re:5},
